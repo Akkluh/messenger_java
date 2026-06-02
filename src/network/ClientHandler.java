@@ -6,6 +6,8 @@ import java.io.*;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 public class ClientHandler implements Runnable{
     private Socket socket;
     private BufferedReader reader;
@@ -27,12 +29,33 @@ public class ClientHandler implements Runnable{
             writer.println("Enter your username:");
             username = reader.readLine();
             clients.add(this);
-            broadcast("SERVER: " + username + " joined the chat");
+            onlineUsers.put(username, this);
+            broadcast("SERVER: " + username + " joined the chat", this);
             String message;
             while ((message = reader.readLine()) != null) {
+                if (message.equalsIgnoreCase("/exit")) {
+                    writer.println("Disconnecting...");
+                    break;
+                }
+                if (message.equalsIgnoreCase("/users")) {
+                    writer.println(getOnlineUsers());
+                    continue;
+                }
+                if (message.startsWith("/msg ")) {
+                    String[] parts = message.split(" ", 3);
+                    if (parts.length < 3) {
+                        writer.println("Usage: /msg username message");
+                        continue;
+                    }
+                    String targetUser = parts[1];
+                    String privateMessage = parts[2];
+                    sendPrivateMessage(targetUser, privateMessage);
+                    continue;
+                }
+
                 String formatted = username + ": " + message;
                 MessageRepository.saveMessage(username, message);
-                broadcast(formatted);
+                broadcast(formatted, this);
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -40,17 +63,39 @@ public class ClientHandler implements Runnable{
         disconnect();
     }
 }
-    private void broadcast(String message) {
+    private void broadcast(String message, ClientHandler sender) {
         for (ClientHandler client : clients) {
-            client.writer.println(message);
+            if (client != sender) {
+                client.writer.println(message);
+            }
         }
     }
     private void disconnect() {
         clients.remove(this);
+        onlineUsers.remove(username);
+        broadcast("SERVER: " + username + " left the chat", this);
         try {
             socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    private String getOnlineUsers() {
+        StringBuilder sb = new StringBuilder("Online users:\n");
+        for (ClientHandler client : clients) {
+            sb.append("- ").append(client.username).append("\n");
+        }
+        return sb.toString();
+    }
+    private static Map<String, ClientHandler> onlineUsers = new ConcurrentHashMap<>();
+
+    private void sendPrivateMessage(String targetUser, String message) {
+        ClientHandler target = onlineUsers.get(targetUser);
+        if (target == null) {
+            writer.println("User " + targetUser + " not found.");
+            return;
+        }
+        target.writer.println("[PRIVATE] " + username + ": " + message);
+        writer.println("[PRIVATE to " + targetUser + "] " + message);
     }
 }

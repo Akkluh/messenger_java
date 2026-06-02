@@ -14,10 +14,13 @@ public class ChatClient {
                 while (scanner.hasNextLine()) {
                     String input = scanner.nextLine();
                     writer.println(input);
+                    if (input.equalsIgnoreCase("/exit")) {
+                        break;
+                    }
                 }
         } catch (IOException e) {
             e.printStackTrace();
     }
-
+    
     }
 }

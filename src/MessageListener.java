@@ -19,7 +19,7 @@ public class MessageListener implements Runnable {
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Dissconnected from server.");
         }
     }
 }
