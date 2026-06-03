@@ -46,6 +46,10 @@ public class ClientHandler implements Runnable{
             broadcast("SERVER: " + username + " joined the chat", this);
             String message;
             while ((message = reader.readLine()) != null) {
+                if (message.equalsIgnoreCase("/help")) {
+                    writer.println("Commands:\n/exit - disconnects the user from the server\n/users - prints out list of users currently connected to the server\n/msg 'username' 'message' - sends a direct message to a user that can only be viewed by the sender and the reciever.");
+                    continue;
+                }
                 if (message.equalsIgnoreCase("/exit")) {
                     writer.println("Disconnecting...");
                     break;
@@ -56,16 +60,12 @@ public class ClientHandler implements Runnable{
                 }
                 if (message.startsWith("/msg")) {
                     if (message.equals("/msg")) {
-                        writer.println("ERROR: no arguments given, type ? for help");
+                        writer.println("ERROR: no arguments given");
                         continue;
                     }
                     String[] parts = message.split(" ", 3);
-                    if (parts[1].equals("?") ) {
-                        writer.println("Usage: /msg username message");
-                        continue;
-                    }
-                    if (parts.length < 3) {
-                        writer.println("ERROR: no target or message, type ? for help");
+                    if (parts.length < 3 && parts.length != 1) {
+                        writer.println("ERROR: no target or message");
                         continue;
                     }
                     String targetUser = parts[1];
