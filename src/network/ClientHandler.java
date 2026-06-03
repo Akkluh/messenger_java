@@ -27,7 +27,22 @@ public class ClientHandler implements Runnable{
     public void run() {
         try {
             writer.println("Enter your username:");
-            username = reader.readLine();
+            while (true){
+                username = reader.readLine();
+                if (username.startsWith("/")){
+                    writer.println("ERROR: Username cannot start with command sign");
+                    continue;
+                }
+                if (username == null || username.isBlank()) {
+                    writer.println("ERROR: Username cannot be empty.");
+                    continue;
+                }
+                if (onlineUsers.containsKey(username)) {
+                    writer.println("ERROR: Username already taken. Please, try another.");
+                    continue;
+                }
+                break;
+            }
             clients.add(this);
             onlineUsers.put(username, this);
             broadcast("SERVER: " + username + " joined the chat", this);
@@ -41,10 +56,18 @@ public class ClientHandler implements Runnable{
                     writer.println(getOnlineUsers());
                     continue;
                 }
-                if (message.startsWith("/msg ")) {
+                if (message.startsWith("/msg")) {
+                    if (message.equals("/msg")) {
+                        writer.println("ERROR: no arguments given, type ? for help");
+                        continue;
+                    }
                     String[] parts = message.split(" ", 3);
-                    if (parts.length < 3) {
+                    if (parts[1].equals("?") ) {
                         writer.println("Usage: /msg username message");
+                        continue;
+                    }
+                    if (parts.length < 3) {
+                        writer.println("ERROR: no target or message, type ? for help");
                         continue;
                     }
                     String targetUser = parts[1];
