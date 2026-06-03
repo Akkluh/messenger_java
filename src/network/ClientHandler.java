@@ -1,20 +1,21 @@
 package network;
 import database.MessageRepository;
+import database.UserInfo;
+
 import java.io.*;
 import java.net.Socket;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 public class ClientHandler implements Runnable{
     private Socket socket;
     private BufferedReader reader;
     private PrintWriter writer;
     private String username;
+    private String password;
     private static DateTimeFormatter TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static Set<ClientHandler> clients = new HashSet<>();
     public ClientHandler(Socket socket) {
@@ -26,33 +27,69 @@ public class ClientHandler implements Runnable{
             e.printStackTrace();
         }
     }
-    @Override
-    public void run() {
-        try {
-            writer.println("Enter your username:");
-            while (true){
-                username = reader.readLine();
-                if (username.startsWith("/")){
-                    writer.println("ERROR: Username cannot start with command sign");
-                    continue;
-                }
-                if (username == null || username.isBlank()) {
-                    writer.println("ERROR: Username cannot be empty.");
+   @Override
+public void run() {
+    try {
+        writer.println("Sign in (s) or Log in (l) ?:");
+        String SLoption = reader.readLine();
+        
+        // Выбор username
+        writer.println("Enter your username:");
+        while (true) {
+            username = reader.readLine();
+            
+            if (username == null || username.isBlank()) {
+                writer.println("ERROR: Username cannot be empty.");
+                continue;
+            }
+            
+            if (username.startsWith("/")) {
+                writer.println("ERROR: Username cannot start with command sign");
+                continue;
+            }
+            
+            if (SLoption.equals("s")) {
+                if (UserInfo.userExists(username)) {
+                    writer.println("ERROR: Username already registered. Please, try another.");
                     continue;
                 }
                 if (onlineUsers.containsKey(username)) {
-                    writer.println("ERROR: Username already taken. Please, try another.");
+                    writer.println("ERROR: Username already taken online. Please, try another.");
                     continue;
                 }
-                break;
             }
+            break;
+        }
+        
+        // Выбор пароля и регистрация/логин
+        while (true) {
+            writer.println("Enter your password:");
+            password = reader.readLine();
+            
+            if (SLoption.equals("s")) {
+                UserInfo.signIn(username, password);
+                writer.println("Registration successful! Welcome to the chat!");
+                break;
+            } else if (SLoption.equals("l")) {
+                if (UserInfo.logIn(username, password)) {
+                    writer.println("Login successful! Welcome back!");
+                    break;
+                } else {
+                    writer.println("ERROR: Invalid username or password. Try again.");
+                    continue;
+                }
+            } else {
+                writer.println("ERROR: Invalid option. Disconnecting...");
+                return;
+            }
+        }
             clients.add(this);
             onlineUsers.put(username, this);
             broadcast("[" + getCurrentTime() + "] " + "SERVER: " + username + " joined the chat", this);
             String message;
             while ((message = reader.readLine()) != null) {
                 if (message.equalsIgnoreCase("/help")) {
-                    writer.println("Commands:\n/exit - disconnects the user from the server\n/users - prints out list of users currently connected to the server\n/msg 'username' 'message' - sends a direct message to a user that can only be viewed by the sender and the reciever.");
+                    writer.println("Commands:\n/exit - Disconnects the user from the server\n/users - Prints out list of users currently connected to the server\n/msg 'username' 'message' - Sends a direct message to a user that can only be viewed by the sender and the reciever.");
                     continue;
                 }
                 if (message.equalsIgnoreCase("/exit")) {
@@ -65,12 +102,12 @@ public class ClientHandler implements Runnable{
                 }
                 if (message.startsWith("/msg")) {
                     if (message.equals("/msg")) {
-                        writer.println("ERROR: no arguments given");
+                        writer.println("ERROR: No arguments given");
                         continue;
                     }
                     String[] parts = message.split(" ", 3);
                     if (parts.length < 3 && parts.length != 1) {
-                        writer.println("ERROR: no target or message");
+                        writer.println("ERROR: No target or message");
                         continue;
                     }
                     String targetUser = parts[1];

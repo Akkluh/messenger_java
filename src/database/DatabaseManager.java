@@ -17,9 +17,11 @@ public class DatabaseManager {
                 "message TEXT NOT NULL," +
                 "created_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
                 ");";
+        String userinfo = "CREATE TABLE IF NOT EXISTS userinfo (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, password TEXT NOT NULL);";
         try (Connection conn = connect();
              Statement stmt = conn.createStatement()) {
             stmt.execute(sql);
+            stmt.execute(userinfo);
         } catch (SQLException e) {
             e.printStackTrace();
         }
