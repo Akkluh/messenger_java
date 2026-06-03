@@ -6,11 +6,16 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 public class ClientHandler implements Runnable{
     private Socket socket;
     private BufferedReader reader;
     private PrintWriter writer;
     private String username;
+    private static DateTimeFormatter TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static Set<ClientHandler> clients = new HashSet<>();
     public ClientHandler(Socket socket) {
         this.socket = socket;
@@ -43,7 +48,7 @@ public class ClientHandler implements Runnable{
             }
             clients.add(this);
             onlineUsers.put(username, this);
-            broadcast("SERVER: " + username + " joined the chat", this);
+            broadcast("[" + getCurrentTime() + "] " + "SERVER: " + username + " joined the chat", this);
             String message;
             while ((message = reader.readLine()) != null) {
                 if (message.equalsIgnoreCase("/help")) {
@@ -74,7 +79,7 @@ public class ClientHandler implements Runnable{
                     continue;
                 }
 
-                String formatted = username + ": " + message;
+                String formatted = "[" + getCurrentTime() + "] " + username + ": " + message;
                 MessageRepository.saveMessage(username, message);
                 broadcast(formatted, this);
             }
@@ -94,7 +99,7 @@ public class ClientHandler implements Runnable{
     private void disconnect() {
         clients.remove(this);
         onlineUsers.remove(username);
-        broadcast("SERVER: " + username + " left the chat", this);
+        broadcast("[" + getCurrentTime() + "] " + "SERVER: " + username + " left the chat", this);
         try {
             socket.close();
         } catch (IOException e) {
@@ -116,7 +121,10 @@ public class ClientHandler implements Runnable{
             writer.println("User " + targetUser + " not found.");
             return;
         }
-        target.writer.println("[PRIVATE] " + username + ": " + message);
-        writer.println("[PRIVATE to " + targetUser + "] " + message);
+        target.writer.println("[" + getCurrentTime() + "] " + "[PRIVATE] " + username + ": " + message);
+        writer.println("[" + getCurrentTime() + "] " + "[PRIVATE to " + targetUser + "] " + message);
+    }
+    private String getCurrentTime() {
+        return LocalDateTime.now().format(TimeFormat);
     }
 }
