@@ -4,7 +4,6 @@ import database.UserInfo;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,7 +16,7 @@ public class ClientHandler implements Runnable{
     private String username;
     private String password;
     private static DateTimeFormatter TimeFormat = DateTimeFormatter.ofPattern("HH:mm:ss");
-    private static Set<ClientHandler> clients = new HashSet<>();
+    private static Set<ClientHandler> clients = ConcurrentHashMap.newKeySet();
     public ClientHandler(Socket socket) {
         this.socket = socket;
         try {
@@ -30,6 +29,7 @@ public class ClientHandler implements Runnable{
    @Override
 public void run() {
     try {
+        writer.println("Welcome to Chat!");
         writer.println("Sign in (s) or Log in (l) ?:");
         String SLoption = reader.readLine();
         
@@ -53,6 +53,12 @@ public void run() {
                     writer.println("ERROR: Username already registered. Please, try another.");
                     continue;
                 }
+                if (onlineUsers.containsKey(username)) {
+                    writer.println("ERROR: Username already taken online. Please, try another.");
+                    continue;
+                }
+            }
+            if (SLoption.equals("l")){
                 if (onlineUsers.containsKey(username)) {
                     writer.println("ERROR: Username already taken online. Please, try another.");
                     continue;
